@@ -1,3 +1,9 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/(GetProject.*)",
+      "destination": "https://roi-service-project-backend-78e6.vercel.app/$1"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
