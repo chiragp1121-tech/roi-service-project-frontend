@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # React + Vite + Tailwind CSS + Axios Starter
 
 A complete, production-ready React application starter configured with **Axios** (with interceptors & standardized error handling), **Tailwind CSS v3**, **Prettier** (auto formatting + tailwind class sorting), and **ESLint 9** (flat config with react hooks rules).
@@ -83,6 +82,3 @@ export const userService = {
   delete: (id) => axiosClient.delete(`/users/${id}`),
 };
 ```
-=======
-# roi-service-project-frontend
->>>>>>> 2bd6b93a23e2eea7ca0ebd4112ae29857fd2be6a

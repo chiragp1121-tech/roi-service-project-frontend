@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 // Get base URL from environment variables
-const baseURL =
-  import.meta.env.VITE_API_BASE_URL;
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://brilliant-frosty-babbling.ngrok-free.dev';
 
 const axiosClient = axios.create({
   baseURL,
@@ -24,10 +23,7 @@ axiosClient.interceptors.request.use(
     }
 
     if (import.meta.env.DEV) {
-      console.log(
-        `[API Request] ${config.method?.toUpperCase()} -> ${config.url}`,
-        config.params || config.data
-      );
+      console.log(`[API Request] ${config.method?.toUpperCase()} -> ${config.url}`, config.params || config.data);
     }
     return config;
   },
@@ -45,12 +41,9 @@ axiosClient.interceptors.response.use(
   (error) => {
     let message = 'An error occurred while fetching data.';
     if (error.response) {
-      message =
-        error.response.data?.message ||
-        `Server responded with status ${error.response.status}`;
+      message = error.response.data?.message || `Server responded with status ${error.response.status}`;
     } else if (error.request) {
-      message =
-        'No response from server. Check if ngrok tunnel or API server is running.';
+      message = 'No response from server. Check if ngrok tunnel or API server is running.';
     } else {
       message = error.message;
     }

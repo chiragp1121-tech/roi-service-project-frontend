@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { projectService } from '../api/projectService';
 import DataTable from '../components/DataTable';
 import {
-  Search,
   RefreshCw,
   AlertTriangle,
   ChevronDown,
@@ -10,22 +10,34 @@ import {
 } from 'lucide-react';
 
 export default function Planned() {
-  const [projectId, setProjectId] = useState('');
+  const { projectIdParam } = useParams();
+  const [searchParams] = useSearchParams();
+
+  // Extract ID from path param (/planned/projectid=1415 or /planned/1415) or query param
+  const rawId =
+    projectIdParam ||
+    searchParams.get('projectId') ||
+    searchParams.get('projectid') ||
+    searchParams.get('id') ||
+    '';
+  const urlProjectId = rawId.replace(/^project_?id[=:]*/i, '').trim();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [apiData, setApiData] = useState(null);
   const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const fetchedIdRef = useRef('');
 
   // Fetch from actual API
-  const handleFetchData = async (e) => {
-    if (e) e.preventDefault();
-    if (!projectId.trim()) return;
+  const fetchProjectData = useCallback(async (idToFetch) => {
+    const cleanId = (idToFetch || '').trim();
+    if (!cleanId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await projectService.getProjectServicePlanned(projectId.trim());
+      const response = await projectService.getProjectServicePlanned(cleanId);
       setApiData(response);
     } catch (err) {
       console.error('API Error:', err);
@@ -33,65 +45,34 @@ export default function Planned() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Auto-fetch immediately once when urlProjectId is available
+  useEffect(() => {
+    if (urlProjectId && fetchedIdRef.current !== urlProjectId) {
+      fetchedIdRef.current = urlProjectId;
+      fetchProjectData(urlProjectId);
+    }
+  }, [urlProjectId, fetchProjectData]);
 
   const tables = apiData?.tables || {};
 
   return (
     <div className="space-y-6 pb-12">
-      {/* 1. Project ID Input Card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <form onSubmit={handleFetchData} className="max-w-xl">
-          <div className="space-y-2">
-            <label
-              htmlFor="projectId"
-              className="block text-sm font-semibold text-gray-800"
-            >
-              Project ID
-            </label>
-
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <input
-                  id="projectId"
-                  type="text"
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  placeholder="Enter Project ID"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition placeholder:text-gray-400 focus:border-[#0c72af] focus:outline-none focus:ring-2 focus:ring-[#0c72af]/20"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0c72af] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#0a6094] active:bg-[#084e79] disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    <span>Fetching...</span>
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4" />
-                    <span>Get Planned Services</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+      {/* Loading */}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <RefreshCw className="w-6 h-6 text-[#0c72af] animate-spin" />
+        </div>
+      )}
 
       {/* Error Banner */}
       {error && (
-        <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-2.5">
+          <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-red-900">API Error</p>
-            <p className="mt-0.5 text-xs text-red-700">{error}</p>
+            <p className="text-xs text-red-700 mt-0.5">{error}</p>
           </div>
         </div>
       )}
@@ -99,11 +80,8 @@ export default function Planned() {
       {/* 2. Main Planned Table (Default View) */}
       {apiData && (
         <div>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Planned Services</h2>
-            <span className="font-mono text-xs text-gray-500">
-              Project ID: #{apiData.project_id}
-            </span>
+          <div className="mb-3">
+            <h2 className="text-xl font-bold text-gray-900">Planned Services</h2>
           </div>
 
           <DataTable
@@ -112,18 +90,18 @@ export default function Planned() {
           />
 
           {/* 3. "Show more details" Collapsible Accordion */}
-          <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="mt-8 border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
             <button
               type="button"
               onClick={() => setShowMoreDetails(!showMoreDetails)}
-              className="flex w-full cursor-pointer items-center justify-between border-b border-transparent bg-white px-5 py-4 text-left transition hover:bg-gray-50 data-[expanded=true]:border-gray-200"
+              className="w-full px-5 py-4 flex items-center justify-between bg-white hover:bg-gray-50 text-left transition cursor-pointer border-b border-transparent data-[expanded=true]:border-gray-200"
               data-expanded={showMoreDetails}
             >
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+              <div className="flex items-center gap-2 font-semibold text-sm text-gray-800">
                 {showMoreDetails ? (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
                 )}
                 <span>Show more details</span>
               </div>
@@ -131,10 +109,10 @@ export default function Planned() {
 
             {/* Expanded Detailed Tables */}
             {showMoreDetails && (
-              <div className="space-y-8 border-t border-gray-200 bg-gray-50/40 p-5 sm:p-6">
+              <div className="p-5 sm:p-6 space-y-8 bg-gray-50/40 border-t border-gray-200">
                 {/* Current Services */}
                 <div>
-                  <h3 className="mb-3 text-base font-bold text-gray-900">
+                  <h3 className="text-base font-bold text-gray-900 mb-3">
                     Current Services (matching current services)
                   </h3>
                   <DataTable data={tables.current_services} />
@@ -142,23 +120,19 @@ export default function Planned() {
 
                 {/* Future Services */}
                 <div>
-                  <h3 className="mb-3 text-base font-bold text-gray-900">
-                    Future Services
-                  </h3>
+                  <h3 className="text-base font-bold text-gray-900 mb-3">Future Services</h3>
                   <DataTable data={tables.future_services} />
                 </div>
 
                 {/* Cost and Schedule */}
                 <div>
-                  <h3 className="mb-3 text-base font-bold text-gray-900">
-                    Cost and Schedule
-                  </h3>
+                  <h3 className="text-base font-bold text-gray-900 mb-3">Cost and Schedule</h3>
                   <DataTable data={tables.cost_schedule} />
                 </div>
 
                 {/* Future - Current Margin Contribution */}
                 <div>
-                  <h3 className="mb-3 text-base font-bold text-gray-900">
+                  <h3 className="text-base font-bold text-gray-900 mb-3">
                     Future - Current Margin Contribution
                   </h3>
                   <DataTable data={tables.future_current_margin} />
@@ -166,9 +140,7 @@ export default function Planned() {
 
                 {/* Summary Table */}
                 <div>
-                  <h3 className="mb-3 text-base font-bold text-gray-900">
-                    Summary Overview
-                  </h3>
+                  <h3 className="text-base font-bold text-gray-900 mb-3">Summary Overview</h3>
                   <DataTable data={tables.summary} />
                 </div>
               </div>
