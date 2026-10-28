@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get base URL from environment variables
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://brilliant-frosty-babbling.ngrok-free.dev';
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const axiosClient = axios.create({
   baseURL,
