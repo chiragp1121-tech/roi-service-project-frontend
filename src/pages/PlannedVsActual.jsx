@@ -131,10 +131,10 @@ export default function PlannedVsActual() {
                 </div>
 
                 {/* Cost and Schedule */}
-                <div>
+                {/* <div>
                   <h3 className="text-base font-bold text-gray-900 mb-3">Cost and Schedule</h3>
                   <DataTable data={tables.cost_schedule} />
-                </div>
+                </div> */}
 
                 {/* Future - Current Margin Contribution */}
                 <div>
